@@ -4,99 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Vision | Shafiq Ahmad</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --p: #1a73e8; --bg: #f8f9fa; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
-        .app-card { background: white; width: 100%; max-width: 400px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); padding: 25px; box-sizing: border-box; text-align: center; }
-        #preview { width: 100%; border-radius: 15px; display: none; margin-bottom: 15px; border: 1px solid #ddd; }
-        .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; margin-top: 10px; }
-        .btn-cam { background: var(--p); color: white; }
-        #status { margin: 15px 0; color: #555; font-size: 14px; font-weight: 500; }
-        #resultBox { background: #e8f0fe; padding: 15px; border-radius: 12px; display: none; text-align: left; position: relative; border-left: 5px solid var(--p); }
-        .speaker { position: absolute; right: 10px; top: 10px; font-size: 24px; color: var(--p); cursor: pointer; }
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        #preview { width: 100%; border-radius: 15px; display: none; margin-bottom: 15px; }
+        .btn { background: #ff9d00; color: white; padding: 15px; border: none; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; }
+        #status { margin: 15px 0; font-size: 14px; color: #666; }
+        #resBox { background: #fff9e6; padding: 15px; border-radius: 12px; display: none; text-align: left; border-left: 5px solid #ff9d00; }
     </style>
 </head>
 <body>
 
-<div class="app-card">
-    <h2 style="color:var(--p); margin:0;">AI Vision Pro</h2>
-    <p style="font-size:12px; color:#888; margin-bottom:20px;">Developed by Shafiq Ahmad</p>
-
-    <img id="preview" src="">
-    <div id="status">Select a photo to start...</div>
-
-    <button class="btn btn-cam" onclick="document.getElementById('fileInp').click()">
-        <i class="fas fa-camera"></i> Camera / Gallery
-    </button>
-    <input type="file" id="fileInp" accept="image/*" style="display:none">
-
-    <div id="resultBox">
-        <i class="fas fa-volume-up speaker" onclick="speakText()"></i>
-        <strong style="color:var(--p)">AI Analysis:</strong>
-        <p id="resText" style="margin-top:10px; line-height:1.6; color:#333;"></p>
-    </div>
+<div class="card">
+    <h2>AI Vision Pro</h2>
+    <p style="font-size:11px; color:#888;">Stable Version - Shafiq Ahmad</p>
+    <img id="preview">
+    <div id="status">Photo select karein...</div>
+    <button class="btn" onclick="document.getElementById('f').click()">Camera / Gallery</button>
+    <input type="file" id="f" accept="image/*" style="display:none">
+    <div id="resBox"><strong>AI Result:</strong><p id="t"></p></div>
 </div>
 
 <script>
-    const KEY = "AIzaSyBUANQdo6wRKn9Q-rPher8KAprtc9nOWlk";
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${KEY}`;
+    const TOKEN = "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";
+    // Is bar hum seedha binary data bhej rahe hain bina extra complexity ke
+    const API_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large";
 
-    const fileInp = document.getElementById('fileInp');
-    const preview = document.getElementById('preview');
-    const status = document.getElementById('status');
-    const resText = document.getElementById('resText');
-    const resultBox = document.getElementById('resultBox');
-
-    fileInp.onchange = (e) => {
+    document.getElementById('f').onchange = async (e) => {
         const file = e.target.files[0];
         if(!file) return;
 
-        const reader = new FileReader();
-        reader.onload = () => {
-            preview.src = reader.result;
-            preview.style.display = "block";
-            status.innerHTML = "AI Analyzing... <i class='fas fa-spinner fa-spin'></i>";
-            
-            const base64 = reader.result.split(',')[1];
-            callAI(base64);
-        };
-        reader.readAsDataURL(file);
-    };
+        document.getElementById('preview').src = URL.createObjectURL(file);
+        document.getElementById('preview').style.display = "block";
+        document.getElementById('status').innerText = "AI is scanning...";
 
-    async function callAI(base64) {
         try {
             const response = await fetch(API_URL, {
+                headers: { 
+                    "Authorization": `Bearer ${TOKEN}`,
+                    "Content-Type": "application/octet-stream" 
+                },
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [
-                        { text: "Is photo ko pehchanein aur iska naam aur 2 bade uses Hindi mein batayein." },
-                        { inline_data: { mime_type: "image/jpeg", data: base64 } }
-                    ]}]
-                })
+                body: file,
             });
 
-            const data = await response.json();
-            
-            if(data.candidates && data.candidates.length > 0) {
-                resText.innerText = data.candidates[0].content.parts[0].text;
-                status.innerText = "Mubarak ho! Analysis Complete.";
-                resultBox.style.display = "block";
+            const result = await response.json();
+
+            if (Array.isArray(result) && result[0].generated_text) {
+                document.getElementById('t').innerText = result[0].generated_text;
+                document.getElementById('resBox').style.display = "block";
+                document.getElementById('status').innerText = "Success!";
+            } else if (result.error && result.estimated_time) {
+                document.getElementById('status').innerText = "Model loading... Try in 20 seconds.";
             } else {
-                status.innerHTML = "<b style='color:red'>Google Error: " + (data.error ? data.error.message : "Try again") + "</b>";
+                document.getElementById('status').innerText = "Technical Detail: " + JSON.stringify(result);
             }
         } catch (err) {
-            status.innerHTML = "<b style='color:red'>Network Error! Check Internet Connection.</b>";
+            // Agar browser block kare toh humein ye dikhega
+            document.getElementById('status').innerText = "Security Block! Chrome Incognito mein try karein.";
+            console.log(err);
         }
-    }
-
-    function speakText() {
-        const msg = new SpeechSynthesisUtterance(resText.innerText);
-        msg.lang = 'hi-IN';
-        window.speechSynthesis.speak(msg);
-    }
+    };
 </script>
-
 </body>
 </html>
